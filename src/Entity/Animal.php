@@ -6,49 +6,71 @@ use App\Repository\AnimalRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use ApiPlatform\Metadata\ApiResource;
+use Symfony\Component\Serializer\Attribute\Groups;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Delete;
-use Symfony\Component\Serializer\Attribute\Groups;
 
-#[ORM\Entity(repositoryClass: AnimalRepository::class)]
-#[ApiResource()]
 #[ApiResource(
-    operations: [
-        new GetCollection(security: "is_granted('ROLE_ASSISTANT')", securityMessage: 'You are not allowed to get animals'),
-        new Post(security: "is_granted('ROLE_ASSISTANT')", securityMessage: 'You are not allowed to create animals'),
-        new Get(security: "is_granted('ROLE_ASSISTANT')", securityMessage: 'You are not allowed to get this animal'),
-        new Patch(security: "is_granted('ROLE_ASSISTANT')", securityMessage: 'You are not allowed to edit this animal'),
-        new Delete(security: "is_granted('ROLE_ASSISTANT')", securityMessage: 'You are not allowed to delete this animal'),
-    ],
+    forceEager: false,
     normalizationContext: ['groups' => ['read']],
     denormalizationContext: ['groups' => ['write']],
+    operations: [
+        new GetCollection(
+            security: "is_granted('ROLE_DIRECTOR')",
+            securityMessage: 'Acces refused : you are not allowed to list animals.'
+        ),
+        new Post(
+            security: "is_granted('ROLE_ASSISTANT')",
+            securityMessage: 'Acces refused : you are not allowed to create an animal.'
+        ),
+        new Get(
+            security: "is_granted('ROLE_ASSISTANT') or object.owner == user",
+            securityMessage: 'Acces refused : you are not allowed to see this animal.'
+        ),
+        new Patch(
+            security: "is_granted('ROLE_DIRECTOR') or object.owner == user",
+            securityMessage: 'Acces refused : you are not allowed to modify this animal.'
+        ),
+        new Delete(
+            security: "is_granted('ROLE_DIRECTOR') or object.owner == user",
+            securityMessage: 'Acces refused : you are not allowed to delete this animal.'
+        ),
+    ],
+
 )]
+
+#[ORM\Entity(repositoryClass: AnimalRepository::class)]
 class Animal
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups('read')]
+    #[Groups(groups: 'read')]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['read', 'write'])]
+    #[Groups(groups: ['read', 'write'])]
     private ?string $name = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['read', 'write'])]
-    private ?string $specie = null;
+    #[Groups(groups: ['read', 'write'])]
+    private ?string $species = null;
 
-    #[ORM\Column(type: Types::DATE_MUTABLE)]
-    #[Groups(['read', 'write'])]
-    private ?\DateTimeInterface $bornDate = null;
+    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
+    #[Groups(groups: ['read', 'write'])]
+    private ?\DateTimeInterface $birthDate = null;
 
-    #[ORM\ManyToOne(inversedBy: 'animals')]
-    #[Groups(['read', 'write'])]
-    private ?Client $client = null;
+    #[ORM\OneToOne(cascade: ['persist', 'remove'])]
+    #[Groups(groups: ['read', 'write'])]
+    private ?Media $pictures = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: false)]
+    #[Groups(groups: ['read', 'write'])]
+    private ?Client $owner = null;
 
     public function getId(): ?int
     {
@@ -67,38 +89,50 @@ class Animal
         return $this;
     }
 
-    public function getspecie(): ?string
+    public function getSpecies(): ?string
     {
-        return $this->specie;
+        return $this->species;
     }
 
-    public function setspecie(string $specie): static
+    public function setSpecies(string $species): static
     {
-        $this->specie = $specie;
+        $this->species = $species;
 
         return $this;
     }
 
-    public function getBornDate(): ?\DateTimeInterface
+    public function getBirthDate(): ?\DateTimeInterface
     {
-        return $this->bornDate;
+        return $this->birthDate;
     }
 
-    public function setBornDate(\DateTimeInterface $bornDate): static
+    public function setBirthDate(\DateTimeInterface $birthDate): static
     {
-        $this->bornDate = $bornDate;
+        $this->birthDate = $birthDate;
 
         return $this;
     }
 
-    public function getClient(): ?Client
+    public function getPictures(): ?Media
     {
-        return $this->client;
+        return $this->pictures;
     }
 
-    public function setClient(?Client $client): static
+    public function setPictures(?Media $pictures): static
     {
-        $this->client = $client;
+        $this->pictures = $pictures;
+
+        return $this;
+    }
+
+    public function getOwner(): ?Client
+    {
+        return $this->owner;
+    }
+
+    public function setOwner(?Client $owner): static
+    {
+        $this->owner = $owner;
 
         return $this;
     }

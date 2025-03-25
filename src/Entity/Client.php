@@ -2,93 +2,86 @@
 
 namespace App\Entity;
 
-use ApiPlatform\Metadata\ApiResource;
 use App\Repository\ClientRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use ApiPlatform\Metadata\ApiResource;
+use Symfony\Component\Serializer\Attribute\Groups;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Delete;
+
+#[ApiResource(
+    normalizationContext: ['groups' => ['read']],
+    denormalizationContext: ['groups' => ['write']],
+    operations: [
+        new GetCollection(
+            security: "is_granted('ROLE_DIRECTOR')",
+            securityMessage: 'Acces refused : you are not allowed to list clients.'
+        ),
+        new Post(
+            security: "is_granted('ROLE_DIRECTOR')",
+            securityMessage: 'Acces refused : you are not allowed to create a client.'
+        ),
+        new Get(
+            security: "is_granted('ROLE_DIRECTOR') or object == user",
+            securityMessage: 'Acces refused : you are not allowed to see this client.'
+        ),
+        new Patch(
+            security: "is_granted('ROLE_DIRECTOR') or object == user",
+            securityMessage: 'Acces refused : you are not allowed to modify this client.'
+        ),
+        new Delete(
+            security: "is_granted('ROLE_DIRECTOR') or object == user",
+            securityMessage: 'Acces refused : you are not allowed to delete this client.'
+        ),
+    ],
+
+)]
 
 #[ORM\Entity(repositoryClass: ClientRepository::class)]
-#[ApiResource()]
 class Client
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(groups: 'read')]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    private ?string $firstName = null;
+    #[Groups(groups: ['read', 'write'])]
+    private ?string $name = null;
 
     #[ORM\Column(length: 255)]
-    private ?string $lastName = null;
-
-    /**
-     * @var Collection<int, Animal>
-     */
-    #[ORM\OneToMany(targetEntity: Animal::class, mappedBy: 'client')]
-    private Collection $animals;
-
-    public function __construct()
-    {
-        $this->animals = new ArrayCollection();
-    }
+    #[Groups(groups: ['read', 'write'])]
+    private ?string $firstname = null;
 
     public function getId(): ?int
     {
         return $this->id;
     }
 
-    public function getFirstName(): ?string
+    public function getName(): ?string
     {
-        return $this->firstName;
+        return $this->name;
     }
 
-    public function setFirstName(string $firstName): static
+    public function setName(string $name): static
     {
-        $this->firstName = $firstName;
+        $this->name = $name;
 
         return $this;
     }
 
-    public function getLastName(): ?string
+    public function getFirstname(): ?string
     {
-        return $this->lastName;
+        return $this->firstname;
     }
 
-    public function setLastName(string $lastName): static
+    public function setFirstname(string $firstname): static
     {
-        $this->lastName = $lastName;
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, Animal>
-     */
-    public function getAnimals(): Collection
-    {
-        return $this->animals;
-    }
-
-    public function addAnimal(Animal $animal): static
-    {
-        if (!$this->animals->contains($animal)) {
-            $this->animals->add($animal);
-            $animal->setClient($this);
-        }
-
-        return $this;
-    }
-
-    public function removeAnimal(Animal $animal): static
-    {
-        if ($this->animals->removeElement($animal)) {
-            // set the owning side to null (unless already changed)
-            if ($animal->getClient() === $this) {
-                $animal->setClient(null);
-            }
-        }
+        $this->firstname = $firstname;
 
         return $this;
     }
